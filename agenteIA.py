@@ -27,13 +27,12 @@ class AgentWorld:
         self.step    = 0
         self.catches = 0
         self.running = False
-        self.speed   = 400   # ms entre pasos
+        self.speed   = 400
 
         self._init_world()
         self._build_ui()
         self._draw()
 
-    # ── Inicializar posiciones y obstáculos ──────────────────────────────────
     def _init_world(self):
         self.hunter = (random.randint(0, GRID-1), random.randint(0, GRID-1))
         self.prey   = (random.randint(0, GRID-1), random.randint(0, GRID-1))
@@ -46,11 +45,10 @@ class AgentWorld:
             if c != self.hunter and c != self.prey:
                 self.obstacles.add(c)
 
-        self.path      = []   # camino actual del cazador (A*)
-        self.flee_path = []   # siguiente celda de huida de la presa
+        self.path      = []   
+        self.flee_path = []   
         self.step      = 0
 
-    # ── Construcción de la interfaz ──────────────────────────────────────────
     def _build_ui(self):
         tk.Label(self.root, text="🧠 Agente Inteligente — Cazador vs Presa",
                  font=("Courier New", 13, "bold"), fg=ACCENT, bg=BG)\
@@ -88,7 +86,6 @@ class AgentWorld:
             v.pack(side="left")
             return v
 
-        # ── Leyenda ──────────────────────────────────────────────────────────
         section("▸ LEYENDA")
         for color, desc in [(HUNTER_C, "🔴 Cazador  — usa A*"),
                             (PREY_C,   "🔵 Presa    — huye greedy"),
@@ -97,20 +94,17 @@ class AgentWorld:
             tk.Label(p, text=desc, font=("Courier New", 8),
                      fg=color, bg=BG_PANEL).pack(anchor="w", padx=16, pady=1)
 
-        # ── Estadísticas ─────────────────────────────────────────────────────
         section("▸ ESTADÍSTICAS")
         self.lbl_step    = stat_row("Pasos")
         self.lbl_dist    = stat_row("Distancia")
         self.lbl_plen    = stat_row("Nodos en path")
         self.lbl_catches = stat_row("Capturas")
 
-        # ── Posiciones ───────────────────────────────────────────────────────
         section("▸ POSICIONES")
         self.lbl_hpos   = stat_row("Cazador (x,y)")
         self.lbl_ppos   = stat_row("Presa   (x,y)")
         self.lbl_action = stat_row("Estado")
 
-        # ── Velocidad ────────────────────────────────────────────────────────
         section("▸ VELOCIDAD")
         self.speed_var = tk.IntVar(value=self.speed)
         tk.Scale(p, from_=100, to=900, orient="horizontal",
@@ -120,7 +114,6 @@ class AgentWorld:
                  command=lambda v: setattr(self, "speed", int(v)))\
             .pack(fill="x", padx=12, pady=(0, 4))
 
-        # ── Controles ────────────────────────────────────────────────────────
         section("▸ CONTROLES")
         for txt, color, cmd in [("▶  Iniciar",   "#10b981", self._start),
                                  ("⏸  Pausar",    ACCENT,    self._pause),
@@ -131,11 +124,9 @@ class AgentWorld:
                       cursor="hand2", pady=5)\
                 .pack(fill="x", padx=12, pady=2)
 
-    # ── Heurística Manhattan ─────────────────────────────────────────────────
     def _h(self, a, b):
         return abs(a[0]-b[0]) + abs(a[1]-b[1])
 
-    # ── Vecinos válidos (sin obstáculos, dentro del grid) ────────────────────
     def _neighbors(self, node):
         x, y = node
         return [(x+dx, y+dy)
@@ -143,7 +134,6 @@ class AgentWorld:
                 if 0 <= x+dx < GRID and 0 <= y+dy < GRID
                 and (x+dx, y+dy) not in self.obstacles]
 
-    # ── A* : encuentra el camino más corto de start a goal ──────────────────
     def _astar(self, start, goal):
         pq = [(0, start)]
         came, cost = {}, {start: 0}
@@ -163,25 +153,22 @@ class AgentWorld:
         path.reverse()
         return path
 
-    # ── Cazador: avanza un paso por el camino A* ────────────────────────────
     def _move_hunter(self):
         self.path = self._astar(self.hunter, self.prey)
         if self.path:
             self.hunter = self.path.pop(0)
 
-    # ── Presa: huye al vecino más lejano del cazador (greedy) ────────────────
     def _move_prey(self):
         nbrs = self._neighbors(self.prey)
         if not nbrs:
             return
-        # Excluye la posición actual del cazador para evitar bucles de oscilación
+
         safe = [n for n in nbrs if n != self.hunter]
-        candidates = safe if safe else nbrs   # si no hay escapatoria, usa todos
+        candidates = safe if safe else nbrs   
         best = max(candidates, key=lambda n: self._h(n, self.hunter))
         self.flee_path = [best]
         self.prey = best
 
-    # ── Un paso de simulación ─────────────────────────────────────────────────
     def _update(self):
         if not self.running:
             return
@@ -206,7 +193,6 @@ class AgentWorld:
         if self.running:
             self.root.after(self.speed, self._update)
 
-    # ── Actualizar etiquetas del panel ────────────────────────────────────────
     def _refresh_stats(self, action):
         d = self._h(self.hunter, self.prey)
         self.lbl_step   .config(text=str(self.step))
@@ -218,7 +204,6 @@ class AgentWorld:
         self.lbl_action .config(text=action,
                                  fg=HUNTER_C if action=="¡Captura!" else TEXT_C)
 
-    # ── Controles ────────────────────────────────────────────────────────────
     def _start(self):
         if not self.running:
             self.running = True
@@ -241,7 +226,6 @@ class AgentWorld:
             self.prey = (random.randint(0, GRID-1), random.randint(0, GRID-1))
         self.path = []; self.flee_path = []
 
-    # ── Dibujar el grid ───────────────────────────────────────────────────────
     def _draw(self):
         self.canvas.delete("all")
         path_set = set(self.path)
@@ -263,7 +247,7 @@ class AgentWorld:
                 self.canvas.create_rectangle(
                     x1, y1, x2, y2, fill=color, outline=GRID_L, width=1)
 
-        # Íconos sobre las celdas de los agentes
+        
         hx, hy = self.hunter
         self.canvas.create_text(hx*CELL+CELL//2, hy*CELL+CELL//2,
                                 text="🔴", font=("", 12))
@@ -271,13 +255,13 @@ class AgentWorld:
         self.canvas.create_text(px*CELL+CELL//2, py*CELL+CELL//2,
                                 text="🔵", font=("", 12))
 
-        # Línea punteada que une a los dos agentes
+        
         self.canvas.create_line(hx*CELL+CELL//2, hy*CELL+CELL//2,
                                 px*CELL+CELL//2, py*CELL+CELL//2,
                                 fill=ACCENT, dash=(4, 4), width=1)
 
 
-# ── Punto de entrada ──────────────────────────────────────────────────────────
+
 root = tk.Tk()
 app  = AgentWorld(root)
 root.mainloop()
